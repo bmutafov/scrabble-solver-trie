@@ -1,6 +1,10 @@
 import * as fs from "fs";
 
 type NullableTrieNode = TrieNode | null;
+type TrieSize = {
+  validWords: number;
+  nodes: number;
+};
 
 class WordNotFoundException extends Error {}
 
@@ -19,7 +23,12 @@ class TrieNode {
 }
 
 export class Trie {
-  root: TrieNode = new TrieNode("");
+  public readonly root: TrieNode = new TrieNode("");
+  private readonly _size: TrieSize = { validWords: 0, nodes: 0 };
+
+  get size() {
+    return this._size;
+  }
 
   /**
    * Adds a new word to the dictionary
@@ -28,12 +37,14 @@ export class Trie {
   addWord(word: string) {
     let node = this.root;
     const letters = word.split("");
+    this._size.validWords += 1;
 
     for (const letter of letters) {
       if (node.children.has(letter)) {
         node = node.children.get(letter)!;
       } else {
         const newNode = new TrieNode(letter);
+        this._size.nodes += 1;
         node.children.set(letter, newNode);
         node = newNode;
       }
@@ -92,6 +103,15 @@ export class Trie {
     ).flat();
   }
 
+  pattern(pattern: string) {
+    const existingLetters = pattern
+      .split("")
+      .map((l) => (l === "*" ? [] : [l]));
+    return this.startsWith("", pattern.length, existingLetters).filter(
+      (w) => w.length === pattern.length
+    );
+  }
+
   /**
    * Iterates through all nodes and builds all valid words, until a termination is reached
    * @param prefix Prefix which we have so far in the iterations
@@ -127,7 +147,7 @@ export class Trie {
       }
 
       /** Call the function recursively to find all children words */
-      return searchableNodes.flatMap((value, key) => {
+      return searchableNodes.flatMap((value) => {
         return this.getNodesUntilFinal(
           prefix + node.letter,
           value,
@@ -155,5 +175,44 @@ export class Trie {
 
     /** If we are on a non-valid word which has more children, continue recursively */
     return getChildrenWords();
+  }
+}
+
+export class TwoWayTrie {
+  private readonly forwardTrie = new Trie();
+  private readonly backwardTrie = new Trie();
+
+  addWord(word: string): void {
+    this.forwardTrie.addWord(word);
+    this.backwardTrie.addWord(reverse(word));
+  }
+
+  searchWord(word: string): boolean {
+    return this.forwardTrie.searchWord(word);
+  }
+
+  startsWith(
+    prefix: string,
+    maxDepth?: number | null,
+    existingLetters?: string[][]
+  ) {
+    return this.forwardTrie.startsWith(prefix, maxDepth, existingLetters);
+  }
+
+  endsWith(
+    prefix: string,
+    maxDepth?: number | null,
+    existingLetters?: string[][]
+  ) {
+    const fullExistingLetters = existingLetters?.length
+      ? Array.from({ length: maxDepth || 15 })
+          .fill([])
+          .map((_, i) => existingLetters?.[i] || _)
+          .reverse()
+      : undefined;
+
+    return this.backwardTrie
+      .startsWith(reverse(prefix), maxDepth, fullExistingLetters)
+      .map(reverse);
   }
 }
