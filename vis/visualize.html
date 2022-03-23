@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="./board-to-vis.js"></script>
+  </head>
+  <style type="text/css">
+    #board {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .row {
+      display: flex;
+      gap: 5px;
+    }
+
+    .cell {
+      width: 50px;
+      height: 50px;
+      border: 1px solid rgb(209, 209, 209);
+    }
+
+    .suggested {
+      border-color: coral;
+      word-wrap: break-word;
+    }
+
+    .static {
+      border-color: blue;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .move {
+      border: 1px solid green;
+      font-size: 13px;
+    }
+
+    .move::first-letter {
+      font-size: 30px;
+      color: green;
+    }
+  </style>
+  <body>
+    <div id="board"></div>
+    <script>
+      const boardHtml = board
+        .map((row) => {
+          return `<div class="row">${row
+            .map((cell) => {
+              let bonusClass = "";
+              if (cell.includes("$")) bonusClass += " suggested";
+              else if (cell.length > 0 && cell !== "?") bonusClass += " static";
+
+              const generatedMove = cell.includes("#");
+              let content = cell;
+              if (generatedMove) {
+                bonusClass += " move";
+                content = cell
+                  .split("")
+                  .reverse()
+                  .filter((l) => l !== "#")
+                  .join("");
+              }
+
+              return `<div class="cell ${bonusClass}">${content.replace(
+                /\$|\?/,
+                ""
+              )}</div>`;
+            })
+            .join("")}</div>`;
+        })
+        .join("");
+
+      document.getElementById("board").innerHTML = boardHtml;
+    </script>
+  </body>
+</html>

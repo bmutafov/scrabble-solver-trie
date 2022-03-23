@@ -107,9 +107,24 @@ export class Trie {
     const existingLetters = pattern
       .split("")
       .map((l) => (l === "*" ? [] : [l]));
+
     return this.startsWith("", pattern.length, existingLetters).filter(
       (w) => w.length === pattern.length
     );
+  }
+
+  singleLetterSearch(pattern: string) {
+    const patternLetters = pattern.split("");
+
+    if (patternLetters.filter((l) => l === "*").length !== 1)
+      throw new Error("Only one asterix(*) per pattern!");
+
+    const asterixIndex = pattern.indexOf("*");
+
+    const existingLetters = patternLetters.map((l) => (l === "*" ? [] : [l]));
+    return this.startsWith("", pattern.length, existingLetters)
+      .filter((w) => w.length === pattern.length)
+      .map((w) => w.charAt(asterixIndex));
   }
 
   /**
