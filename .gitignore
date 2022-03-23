@@ -1,2 +1,4 @@
 /node_modules
 tree.txt
+.nyc_output
+coverage

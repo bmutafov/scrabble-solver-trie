@@ -1,59 +1,66 @@
 import { expect } from "chai";
-import { Trie } from "../trie";
+import { TrieV2 } from "../trieV2/trie.v2";
+import { generateGaddagWords, readWords_Gaddag } from "../utils/read-words";
 
-describe("Trie", function () {
-  describe("dictionary", function () {
+describe("Gaddag", function () {
+  describe("generate gaddag from word", function () {
     it("should find a word after its added", function () {
-      const trie = new Trie();
-      expect(trie.searchWord("test")).equal(false);
-      trie.addWord("test");
-      expect(trie.searchWord("test")).equal(true);
-    });
-
-    it("should not find a non-existant word", () => {
-      const trie = new Trie();
-      trie.addWord("test");
-      trie.addWord("random");
-      expect(trie.searchWord("randomized")).equal(false);
-      expect(trie.searchWord("rando")).equal(false);
-      expect(trie.searchWord("tesut")).equal(false);
-      expect(trie.searchWord("testt")).equal(false);
+      const gaddags = generateGaddagWords("explain");
+      expect(gaddags).deep.equal([
+        "nialpxe",
+        "e+xplain",
+        "xe+plain",
+        "pxe+lain",
+        "lpxe+ain",
+        "alpxe+in",
+        "ialpxe+n",
+      ]);
     });
   });
+});
 
-  describe("startsWith", function () {
-    it("should suggest words starting with prefix", function () {
-      const trie = new Trie();
-      trie.addWord("test");
-      expect(trie.startsWith("te")).includes("test");
-    });
+describe("Trie", () => {
+  const getTestTrie = (): TrieV2 => {
+    const trie = new TrieV2();
+    const testWords = generateGaddagWords("test");
+    testWords.forEach((word) => trie.addWord(word));
+    return trie;
+  };
 
-    it("should return empty array if no words are found", function () {
-      const trie = new Trie();
-      trie.addWord("test");
-      expect(trie.startsWith("pe")).length(0);
-    });
+  it("should be empty before initialization", () => {
+    const trie = new TrieV2();
+    expect(trie._ROOT.edges).length(0);
+  });
 
-    it("should take maxDepth into account", () => {
-      const trie = new Trie();
-      ["test", "test1", "test12", "test123", "test1234", "test12345"].forEach(
-        (word) => trie.addWord(word)
-      );
-      expect(trie.startsWith("test", 5)).length(2);
-      expect(trie.startsWith("test", 6)).length(3);
-      trie.addWord("tester");
-      expect(trie.startsWith("test", 6)).length(4);
-    });
+  it("should add and read a word successfully", () => {
+    const trie = getTestTrie();
+    expect(trie.searchWord("test")).equals(true);
+    expect(trie.searchWord("testa")).equals(false);
+    expect(trie.searchWord("tesst")).equals(false);
+    expect(trie.searchWord("tset")).equals(false);
+  });
 
-    it("should take existing array of letters into account", () => {
-      const trie = new Trie();
-      ["test", "test1", "test12", "test21", "test213", "test312"].forEach(
-        (word) => trie.addWord(word)
-      );
-      const emptyArrays = Array.from({ length: 4 }).fill([]) as string[][];
-      const existingLetters = [...emptyArrays, ["1"]];
+  it("should return all words starting with a given prefix", () => {
+    const trie = getTestTrie();
+    expect(trie.startsWith("te")).length(1);
+    expect(trie.startsWith("te")).deep.equal(["test"]);
+    generateGaddagWords("tesseract").forEach((word) => trie.addWord(word));
+    expect(trie.startsWith("te")).deep.equal(["test", "tesseract"]);
+    expect(trie.startsWith("te")).length(2);
+  });
 
-      expect(trie.startsWith("test", null, existingLetters)).length(3);
-    });
+  it("should return all words ending with a given suffix", () => {
+    const trie = getTestTrie();
+    expect(trie.endsWith("st")).length(1);
+    expect(trie.endsWith("st")).deep.equal(["test"]);
+    generateGaddagWords("pedest").forEach((word) => trie.addWord(word));
+    expect(trie.endsWith("st")).length(2);
+  });
+
+  it("should return all words containing a string", () => {
+    const trie = getTestTrie();
+    generateGaddagWords("tesseract").forEach((word) => trie.addWord(word));
+    expect(trie.contains("es")).length(2);
+    expect(trie.contains("es")).deep.eq(["test", "tesseract"]);
   });
 });

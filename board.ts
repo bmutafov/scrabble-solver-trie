@@ -1,4 +1,4 @@
-import { reverse, Trie } from "./trie";
+import { reverse, Trie } from "./_old/trie";
 import * as fs from "fs";
 import { readWords } from "./utils/read-words";
 import { exportToVis } from "./utils/export-to-vis";

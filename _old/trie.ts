@@ -103,6 +103,40 @@ export class Trie {
     ).flat();
   }
 
+  /**
+   * Returns all the words that start with a set prefix
+   * @param prefix The prefix to be matched
+   * @param maxDepth Maximum search depth
+   * @param existingLetters An array of existing letters on certain positions
+   * @returns List of possible words
+   */
+  endsWith(
+    _prefix: string,
+    maxDepth?: number | null,
+    existingLetters?: string[][]
+  ) {
+    let node = this.root;
+    const prefix = ">" + _prefix;
+    const prefixLetters = prefix.split("");
+
+    for (const letter of prefixLetters) {
+      if (node.children.has(letter)) {
+        node = node.children.get(letter)!;
+      } else {
+        return [];
+      }
+    }
+
+    const initialDepth = prefix.length;
+    return this.getNodesUntilFinal(
+      prefix.substring(0, prefix.length - 1),
+      node,
+      initialDepth,
+      maxDepth ? maxDepth + 1 : 15,
+      existingLetters
+    ).flat();
+  }
+
   pattern(pattern: string) {
     const existingLetters = pattern
       .split("")
