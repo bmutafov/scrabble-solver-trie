@@ -1,3 +1,4 @@
+import { memoryUsage } from "./utils/memory-usage";
 import * as fs from "fs";
 import { reverse, Trie } from "./_old/trie";
 import { TrieV2 } from "./trieV2/trie.v2";
@@ -12,6 +13,7 @@ async function run() {
   readWords_Gaddag(trie);
   const starts = trie.endsWith("енис");
   console.log(starts);
+  memoryUsage();
 }
 
 run();
