@@ -12,7 +12,7 @@ const global_board: Board = [
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "н", "", "", "", "", "", ""],
   ["", "", "", "", "", "б", "а", "н", "а", "н", "а", "", "", "", ""],
-  ["", "", "", "", "", "", "", "а", "", "а", "", "", "", "", ""],
+  ["", "", "", "", "", "", "х", "а", "", "а", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
@@ -20,6 +20,7 @@ const global_board: Board = [
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
 ];
+const hand = ["с", "а", "т", "е", "я", "л", "о"];
 
 const guess_board: Board = [...global_board.map((w) => w.slice())];
 
@@ -39,9 +40,21 @@ async function endsWith(word: string, depth?: number): Promise<string[]> {
   return data.res;
 }
 
+async function finishWith(word: string, hand: string[]): Promise<string[]> {
+  const response = await axios.get<{ res: string[] }>(
+    encodeURI(
+      "http://localhost:5100/finish?str=" + word + "&hand=" + hand.join(",")
+    )
+  );
+  const { data } = response;
+  return data.res;
+}
+
 function unique<T>(arr: T[]): T[] {
   return [...new Set(arr)];
 }
+
+const spinner = ora("Calculating move...");
 
 async function run() {
   // Iterate board each row
@@ -115,14 +128,95 @@ async function run() {
           // if we have left and right, it means we have to fit into a specific spot
           // so we got to search by pattern
           const words = await startsWith(left, left.length + 1);
-          // Search by pattern
+          // TODO: Search by pattern
         }
       });
     })
     .flat();
 
-  const spinner = ora("Calculating move...").start();
+  spinner.start();
   await Promise.all(calculating);
+
+  // After we have gone and calculated all horizontal fillers
+  // we go second time column by column this time
+  for (let i_c = 0; i_c < 14; i_c++) {
+    for (let i_r = 0; i_r < 14; i_r++) {
+      // get the current cell
+      const cell = guess_board[i_r][i_c];
+      // if the cell starts with $ - it means this cell is an anchor
+      // and word can start from here
+      // a cell containing only "$" is an anchor, but nothing can be placed there to make a word
+      if (cell.startsWith("$") && cell.length > 1) {
+        let top: string = "";
+        let bottom: string = "";
+
+        // Iterate through the row forwards and backwards in the same array
+        for (
+          // b -> backwards, starting previous row
+          // f -> forwards, starting next row
+          let b = i_r - 1, f = i_r + 1;
+          // iterate while backwards is >= 1 (so we can do b - 1 and get index 0)
+          // and similarly with f < 14 so we can do f + 1 and get 14 (last board index)
+          b >= 1 || f < 14;
+          //change the values each iteration respectively
+          b--, f++
+        ) {
+          // if we have not yet terminated backwards search
+          // and the iterated column is not empty (has a letter)
+          if (b > 0 && guess_board[b][i_c] !== "") {
+            // add it to the "left" string
+            top = guess_board[b][i_c] + top;
+          } else {
+            // if we have terminated OR the column is empty, it means no more information
+            // can be extracted for this row, so terminate backwards search
+            b = -1;
+          }
+
+          // similarly, iterate forwards at the same time with the same conditions
+          if (f < 14 && guess_board[f][i_c] !== "") {
+            bottom += guess_board[f][i_c];
+          } else {
+            // here 21 is chosen randomly, as it can be any number bigger 14
+            // we just need to terminate the if and enter the else
+            f = 21;
+          }
+        }
+
+        // top and bottom are build and now we can find words
+        // if we have top we can find all words starting with the top word
+        // and finishing with letters from our hand
+        if (top && !bottom) {
+          const finish = await finishWith(top, hand);
+
+          const cellLetters = cell.replace("$", "").split("");
+
+          const valid = finish.filter((word) => {
+            return cellLetters.includes(word.charAt(top.length));
+          });
+          const longest = valid.sort((a, b) => b.length - a.length)[0];
+          for (
+            let f = i_r, i = top.length;
+            f < i_r + longest.length - 1;
+            f++, i++
+          ) {
+            guess_board[f][i_c] = "@" + longest.charAt(i);
+          }
+          end();
+          return;
+        }
+
+        // if we have only bottom we can find words
+        // starting with letters from our hand
+        // and finishing with the ones on the bottom
+        if (!top && bottom) {
+          // TODO: endsWith(bottom), hasLettersFromHand
+        }
+      }
+    }
+  }
+}
+
+function end() {
   exportToVis(guess_board);
   spinner.succeed("Move calculated");
 }

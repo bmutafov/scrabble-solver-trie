@@ -60,22 +60,29 @@ export class TrieV2 {
       throw new Error("depth must be higher than the prefix length");
 
     const wordsArray: string[] = [];
-    const prefixLetters = this.getLetters(reverse(prefix));
 
+    const plusNode = this.getStartsWithPlusNode(prefix);
+    if (!plusNode) return [];
+
+    this.startsWithIterator(prefix, plusNode, wordsArray, depth);
+    return wordsArray;
+  }
+
+  private getStartsWithPlusNode(prefix: string): TrieNode | null {
+    const prefixLetters = this.getLetters(reverse(prefix));
     let node = this._ROOT;
     for (const letter of prefixLetters) {
       if (node.edges.has(letter)) {
         node = node.edges.get(letter)!;
       } else {
-        return [];
+        return null;
       }
     }
 
     const plusNode = node.edges.get("+");
-    if (!plusNode) return [];
+    if (!plusNode) return null;
 
-    this.startsWithIterator(prefix, plusNode, wordsArray, depth);
-    return wordsArray;
+    return plusNode;
   }
 
   private startsWithIterator(
@@ -173,6 +180,47 @@ export class TrieV2 {
     });
   }
 
+  finishWithHand(prefix: string, letters: string[]): string[] {
+    const wordsArray: Set<string> = new Set();
+    const plusNode = this.getStartsWithPlusNode(prefix);
+    if (!plusNode) return [];
+    this.finishWithHandIterator(reverse(prefix), plusNode, letters, wordsArray);
+    return [...wordsArray];
+  }
+
+  private finishWithHandIterator(
+    path: string,
+    node: TrieNode,
+    letters: string[],
+    wordsArray: Set<string>
+  ): void {
+    if (node.isTerminator) {
+      const word = this.ungaddagWord(path + node.data);
+      wordsArray.add(word);
+    }
+
+    if (letters.length === 0 || node.edges.size === 0) return;
+
+    const nodesOfLetters = letters.reduce((acc, curr) => {
+      if (node.edges.has(curr)) {
+        acc.push(node.edges.get(curr)!);
+      }
+      return acc;
+    }, [] as TrieNode[]);
+
+    nodesOfLetters.forEach((childNode) => {
+      const letterIndex = letters.indexOf(childNode.data);
+      const lettersWithoutUsed = letters.filter((_, i) => i !== letterIndex);
+
+      this.finishWithHandIterator(
+        path + node.data,
+        childNode,
+        lettersWithoutUsed,
+        wordsArray
+      );
+    });
+  }
+
   size() {
     return this.sizeIterator(this._ROOT);
   }
@@ -210,7 +258,7 @@ export class TrieV2 {
 
   private ungaddagWord(word: string): string {
     const [prefix, suffix] = word.split("+");
-    return `${reverse(prefix)}${suffix}`;
+    return `${reverse(prefix)}${suffix || ""}`;
   }
   //#endregion
 }

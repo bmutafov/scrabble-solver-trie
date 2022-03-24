@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Document1</title>
     <script src="./board-to-vis.js"></script>
   </head>
   <style type="text/css">
@@ -79,6 +79,14 @@
     .row:hover {
       background: rgba(255, 255, 0, 0.2);
     }
+
+    .final-move {
+      border-color: green;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
   </style>
   <body>
     <div id="board"></div>
@@ -110,6 +118,7 @@
               .map((cell) => {
                 let bonusClass = "";
                 if (cell.includes("$")) bonusClass += " suggested";
+                else if (cell.includes("@")) bonusClass += " final-move";
                 else if (cell.length > 0 && cell !== "*")
                   bonusClass += " static";
 
@@ -126,7 +135,7 @@
                 if (content === "*") content = "";
 
                 return `<div class="cell ${bonusClass}">${content.replace(
-                  /\$|\?/,
+                  /\$|\?|\@/,
                   ""
                 )}</div>`;
               })

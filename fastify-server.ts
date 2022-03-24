@@ -29,6 +29,13 @@ fastify.get("/ends", async (request, reply) => {
   return { res };
 });
 
+fastify.get("/finish", async (request, reply) => {
+  const { str, hand } = request.query as { str: string; hand: string };
+  const res = trie.finishWithHand(str, hand.split(","));
+  memoryUsage();
+  return { res };
+});
+
 const populateTrie = async () => {
   await Gaddag.readWords(trie);
 };
