@@ -1,6 +1,5 @@
-import { reverse, Trie } from "./_old/trie";
-import * as fs from "fs";
-import { readWords } from "./utils/read-words";
+import axios from "axios";
+import ora from "ora";
 import { exportToVis } from "./utils/export-to-vis";
 
 type Board<T = string> = T[][];
@@ -24,113 +23,108 @@ const global_board: Board = [
 
 const guess_board: Board = [...global_board.map((w) => w.slice())];
 
-const trie = new Trie();
+async function startsWith(word: string, depth?: number): Promise<string[]> {
+  const response = await axios.get<{ res: string[] }>(
+    encodeURI("http://localhost:5100/starts?str=" + word + "&l=" + depth)
+  );
+  const { data } = response;
+  return data.res;
+}
 
-async function run(board: Board) {
-  await readWords(trie);
+async function endsWith(word: string, depth?: number): Promise<string[]> {
+  const response = await axios.get<{ res: string[] }>(
+    encodeURI("http://localhost:5100/ends?str=" + word + "&l=" + depth)
+  );
+  const { data } = response;
+  return data.res;
+}
 
-  console.log("suggesting move...");
+function unique<T>(arr: T[]): T[] {
+  return [...new Set(arr)];
+}
 
-  for (let r = 0; r < board.length; r++) {
-    const currentRow = board[r];
-    for (let c = 0; c < currentRow.length; c++) {
-      const currentCell = currentRow[c];
-      if (!currentCell) {
-        const pattern = findHorizontal(currentRow, c);
-        if (pattern) {
-          const letters = trie.singleLetterSearch(pattern);
-          guess_board[r][c] = "$" + letters.join("");
-          // console.log("🚩 ~ pattern", pattern, letters);
-        } else {
-          guess_board[r][c] = "?";
+async function run() {
+  // Iterate board each row
+  const calculating = global_board
+    .map((row, i_r) => {
+      // For each row iterate columns
+      return row.map(async (col, i_c) => {
+        // If the space we are checking is not empty, disregard the check
+        if (col !== "") return;
+        // Initialize empty values for the strings before and after the space we are checking
+        let left: string = "";
+        let right: string = "";
+
+        // Iterate through the row forwards and backwards in the same array
+        for (
+          // b -> backwards, starting previous column
+          // f -> forwards, starting next column
+          let b = i_c - 1, f = i_c + 1;
+          // iterate while backwards is >= 1 (so we can do b - 1 and get index 0)
+          // and similarly with f < 14 so we can do f + 1 and get 14 (last board index)
+          b >= 1 || f < 14;
+          //change the values each iteration respectively
+          b--, f++
+        ) {
+          // if we have not yet terminated backwards search
+          // and the iterated column is not empty (has a letter)
+          if (b > 0 && row[b] !== "") {
+            // add it to the "left" string
+            left = row[b] + left;
+          } else {
+            // if we have terminated OR the column is empty, it means no more information
+            // can be extracted for this row, so terminate backwards search
+            b = -1;
+          }
+
+          // similarly, iterate forwards at the same time with the same conditions
+          if (f < 14 && row[f] !== "") {
+            right += row[f];
+          } else {
+            // here 21 is chosen randomly, as it can be any number bigger 14
+            // we just need to terminate the if and enter the else
+            f = 21;
+          }
         }
-      }
-    }
-  }
 
-  for (let c = 0; c < board.length; c++) {
-    for (let r = 0; r < board.length; r++) {
-      const currentCell = board[r][c];
-      if (!currentCell) {
-        const pattern = findVertical(board, r, c);
-        if (pattern) {
-          const letters = trie.singleLetterSearch(pattern);
-          guess_board[r][c] =
+        // when iteration is finished check for
+        if (left && !right) {
+          // only left letters, it means 1 or more letters are to the left, none to the right
+          // so we got to come up with valid word that is one letter longer than the left word
+          const words = await startsWith(left, left.length + 1);
+          // when we have those words, get the character only at the position after the left word
+          // and add it to the guess_board. $ here is to know which spaces are suggestive spaces and which are already on the board
+          guess_board[i_r][i_c] =
             "$" +
-            (guess_board[r][c] === "?"
-              ? letters.join("")
-              : guess_board[r][c]
-                  .split("")
-                  .filter((l) => letters.includes(l))
-                  .join(""));
-          // console.log("🚩 ~ pattern", pattern);
+            unique(words.map((word) => word.charAt(left.length))).join("");
         }
-      }
-    }
-  }
 
-  suggestMove();
+        if (!left && right) {
+          // similarly, if only right, it means we have to append 1 letter on the left
+          // so we search for words ending in "right" word
+          const words = await endsWith(right, right.length + 1);
+          // when we have those, get the character before the "right" word and add it to the guess_board
+          guess_board[i_r][i_c] =
+            "$" +
+            unique(
+              words.map((word) => word.charAt(word.length - right.length - 1))
+            ).join("");
+        }
+
+        if (left && right) {
+          // if we have left and right, it means we have to fit into a specific spot
+          // so we got to search by pattern
+          const words = await startsWith(left, left.length + 1);
+          // Search by pattern
+        }
+      });
+    })
+    .flat();
+
+  const spinner = ora("Calculating move...").start();
+  await Promise.all(calculating);
   exportToVis(guess_board);
-  console.log("✔ move suggested");
+  spinner.succeed("Move calculated");
 }
 
-const hand = ["х", "в", "я", "я", "я", "я", "я"];
-function suggestMove() {
-  for (let r = 0; r < guess_board.length; r++) {
-    const currentRow = guess_board[r];
-    for (let c = 0; c < currentRow.length; c++) {
-      const currentCell = currentRow[c];
-      if (currentCell.startsWith("$")) {
-        const letterToPlay = currentCell
-          .split("")
-          .find((l) => hand.includes(l));
-        if (letterToPlay) {
-          guess_board[r][c] += "#" + letterToPlay;
-          return;
-        }
-      }
-    }
-  }
-}
-
-function findHorizontal(currentRow: string[], c: number) {
-  let pattern = "*";
-  for (let f = c + 1, b = c - 1; b >= 0 || f <= 14; f++, b--) {
-    if (f < 14 && currentRow[f]) {
-      pattern += currentRow[f];
-    } else {
-      f = 15;
-    }
-
-    if (b >= 0 && currentRow[b]) {
-      pattern = currentRow[b] + pattern;
-    } else {
-      b = -1;
-    }
-  }
-
-  return pattern === "*" ? null : pattern;
-}
-
-function findVertical(board: Board, r: number, c: number) {
-  let pattern = "*";
-  const getCell = (_r: number) => board[_r][c];
-
-  for (let f = r + 1, b = r - 1; b >= 0 || f <= 14; f++, b--) {
-    if (f < 14 && getCell(f)) {
-      pattern += getCell(f);
-    } else {
-      f = 15;
-    }
-
-    if (b >= 0 && getCell(b)) {
-      pattern = getCell(b) + pattern;
-    } else {
-      b = -1;
-    }
-  }
-
-  return pattern === "*" ? null : pattern;
-}
-
-run(global_board);
+run();

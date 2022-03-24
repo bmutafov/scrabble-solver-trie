@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import { TrieV2 } from "../trieV2/trie.v2";
-import { generateGaddagWords, readWords_Gaddag } from "../utils/read-words";
+import { Gaddag } from "../utils/read-words";
 
 describe("Gaddag", function () {
   describe("generate gaddag from word", function () {
     it("should find a word after its added", function () {
-      const gaddags = generateGaddagWords("explain");
+      const gaddags = Gaddag.generateFromWord("explain");
       expect(gaddags).deep.equal([
         "nialpxe",
         "e+xplain",
@@ -22,7 +22,7 @@ describe("Gaddag", function () {
 describe("Trie", () => {
   const getTestTrie = (): TrieV2 => {
     const trie = new TrieV2();
-    const testWords = generateGaddagWords("test");
+    const testWords = Gaddag.generateFromWord("test");
     testWords.forEach((word) => trie.addWord(word));
     return trie;
   };
@@ -44,7 +44,7 @@ describe("Trie", () => {
     const trie = getTestTrie();
     expect(trie.startsWith("te")).length(1);
     expect(trie.startsWith("te")).deep.equal(["test"]);
-    generateGaddagWords("tesseract").forEach((word) => trie.addWord(word));
+    Gaddag.generateFromWord("tesseract").forEach((word) => trie.addWord(word));
     expect(trie.startsWith("te")).deep.equal(["test", "tesseract"]);
     expect(trie.startsWith("te")).length(2);
   });
@@ -53,13 +53,13 @@ describe("Trie", () => {
     const trie = getTestTrie();
     expect(trie.endsWith("st")).length(1);
     expect(trie.endsWith("st")).deep.equal(["test"]);
-    generateGaddagWords("pedest").forEach((word) => trie.addWord(word));
+    Gaddag.generateFromWord("pedest").forEach((word) => trie.addWord(word));
     expect(trie.endsWith("st")).length(2);
   });
 
   it("should return all words containing a string", () => {
     const trie = getTestTrie();
-    generateGaddagWords("tesseract").forEach((word) => trie.addWord(word));
+    Gaddag.generateFromWord("tesseract").forEach((word) => trie.addWord(word));
     expect(trie.contains("es")).length(2);
     expect(trie.contains("es")).deep.eq(["test", "tesseract"]);
   });

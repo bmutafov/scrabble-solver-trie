@@ -1,18 +1,15 @@
 import { memoryUsage } from "./utils/memory-usage";
-import * as fs from "fs";
-import { reverse, Trie } from "./_old/trie";
 import { TrieV2 } from "./trieV2/trie.v2";
-import { readWords, readWords_Gaddag } from "./utils/read-words";
+import { Gaddag } from "./utils/read-words";
 
 const trie = new TrieV2();
 
-const snooze = (ms: number) =>
-  new Promise((resolve) => setTimeout(() => resolve(0), ms));
-
 async function run() {
-  readWords_Gaddag(trie);
-  const starts = trie.endsWith("енис");
+  await Gaddag.readWords(trie);
+  const starts = trie.startsWith("а", 2);
+  const ends = trie.endsWith("р", 2);
   console.log(starts);
+  console.log(ends);
   memoryUsage();
 }
 

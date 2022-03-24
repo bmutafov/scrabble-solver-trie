@@ -55,7 +55,10 @@ export class TrieV2 {
     return node.isTerminator;
   }
 
-  startsWith(prefix: string): string[] {
+  startsWith(prefix: string, depth?: number): string[] {
+    if (depth && prefix.length >= depth)
+      throw new Error("depth must be higher than the prefix length");
+
     const wordsArray: string[] = [];
     const prefixLetters = this.getLetters(reverse(prefix));
 
@@ -71,15 +74,17 @@ export class TrieV2 {
     const plusNode = node.edges.get("+");
     if (!plusNode) return [];
 
-    this.startsWithIterator(prefix, plusNode, wordsArray);
+    this.startsWithIterator(prefix, plusNode, wordsArray, depth);
     return wordsArray;
   }
 
   private startsWithIterator(
     path: string,
     node: TrieNode,
-    wordsArray: string[]
+    wordsArray: string[],
+    depth?: number
   ): void {
+    if (depth && path.length === depth) return;
     const nextPath = path + (node.data !== "+" ? node.data : "");
 
     if (node.isTerminator) {
@@ -87,11 +92,14 @@ export class TrieV2 {
     }
 
     node.edges.forEach((value) => {
-      this.startsWithIterator(nextPath, value, wordsArray);
+      this.startsWithIterator(nextPath, value, wordsArray, depth);
     });
   }
 
-  endsWith(suffix: string): string[] {
+  endsWith(suffix: string, depth?: number): string[] {
+    if (depth && suffix.length >= depth)
+      throw new Error("depth must be higher than the suffix length");
+
     const wordsArray: string[] = [];
     const prefixLetters = this.getLetters(reverse(suffix));
 
@@ -104,24 +112,31 @@ export class TrieV2 {
       }
     }
 
-    this.endsWithIterator(suffix.substring(1, suffix.length), node, wordsArray);
+    this.endsWithIterator(
+      suffix.substring(1, suffix.length),
+      node,
+      wordsArray,
+      depth
+    );
     return wordsArray;
   }
 
   private endsWithIterator(
     path: string,
     node: TrieNode,
-    wordsArray: string[]
+    wordsArray: string[],
+    depth?: number
   ): void {
-    const nextPath = node.data + path;
     if (node.data === "+") return;
+    if (depth && path.length >= depth) return;
 
+    const nextPath = node.data + path;
     if (node.isTerminator) {
       wordsArray.push(nextPath);
     }
 
     node.edges.forEach((value) => {
-      this.endsWithIterator(nextPath, value, wordsArray);
+      this.endsWithIterator(nextPath, value, wordsArray, depth);
     });
   }
 

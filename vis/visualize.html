@@ -23,6 +23,20 @@
       width: 50px;
       height: 50px;
       border: 1px solid rgb(209, 209, 209);
+      z-index: 100;
+      /* position: relative; */
+    }
+
+    .cell:hover:after {
+      content: "";
+      display: block;
+      position: absolute;
+      width: 50px;
+      height: 100%;
+      top: 0;
+      background: rgba(255, 255, 0, 0.2);
+      z-index: -10;
+      pointer-events: none;
     }
 
     .suggested {
@@ -47,37 +61,78 @@
       font-size: 30px;
       color: green;
     }
+
+    .nr {
+      width: 15px;
+      height: 45px;
+      display: flex;
+      align-items: center;
+    }
+
+    .cell.num {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-color: white;
+    }
+
+    .row:hover {
+      background: rgba(255, 255, 0, 0.2);
+    }
   </style>
   <body>
     <div id="board"></div>
     <script>
-      const boardHtml = board
-        .map((row) => {
-          return `<div class="row">${row
-            .map((cell) => {
-              let bonusClass = "";
-              if (cell.includes("$")) bonusClass += " suggested";
-              else if (cell.length > 0 && cell !== "?") bonusClass += " static";
+      const boardHtml =
+        `<div class="row">
+        <div class="nr">-</div>
+        <div class="cell num">0</div>
+        <div class="cell num">1</div>
+        <div class="cell num">2</div>
+        <div class="cell num">3</div>
+        <div class="cell num">4</div>
+        <div class="cell num">5</div>
+        <div class="cell num">6</div>
+        <div class="cell num">7</div>
+        <div class="cell num">8</div>
+        <div class="cell num">9</div>
+        <div class="cell num">10</div>
+        <div class="cell num">11</div>
+        <div class="cell num">12</div>
+        <div class="cell num">13</div>
+        <div class="cell num">14</div>
+        </div>` +
+        board
+          .map((row, r_i) => {
+            return `<div class="row">
+              <div class="nr">${r_i}</div>
+            ${row
+              .map((cell) => {
+                let bonusClass = "";
+                if (cell.includes("$")) bonusClass += " suggested";
+                else if (cell.length > 0 && cell !== "*")
+                  bonusClass += " static";
 
-              const generatedMove = cell.includes("#");
-              let content = cell;
-              if (generatedMove) {
-                bonusClass += " move";
-                content = cell
-                  .split("")
-                  .reverse()
-                  .filter((l) => l !== "#")
-                  .join("");
-              }
+                const generatedMove = cell.includes("#");
+                let content = cell;
+                if (generatedMove) {
+                  bonusClass += " move";
+                  content = cell
+                    .split("")
+                    .reverse()
+                    .filter((l) => l !== "#")
+                    .join("");
+                }
+                if (content === "*") content = "";
 
-              return `<div class="cell ${bonusClass}">${content.replace(
-                /\$|\?/,
-                ""
-              )}</div>`;
-            })
-            .join("")}</div>`;
-        })
-        .join("");
+                return `<div class="cell ${bonusClass}">${content.replace(
+                  /\$|\?/,
+                  ""
+                )}</div>`;
+              })
+              .join("")}</div>`;
+          })
+          .join("");
 
       document.getElementById("board").innerHTML = boardHtml;
     </script>

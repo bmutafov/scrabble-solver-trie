@@ -1,6 +1,7 @@
 import { TrieV2 } from "./trieV2/trie.v2";
 import Fastify from "fastify";
-import { readWords_Gaddag } from "./utils/read-words";
+import { Gaddag } from "./utils/read-words";
+import { memoryUsage } from "./utils/memory-usage";
 
 const trie = new TrieV2();
 
@@ -9,8 +10,9 @@ const fastify = Fastify({
 });
 
 fastify.get("/starts", async (request, reply) => {
-  const { str } = request.query as { str: string };
-  const res = trie.startsWith(str);
+  const { str, l } = request.query as { str: string; l?: string };
+  const res = trie.startsWith(str, l ? parseInt(l) : undefined);
+  memoryUsage();
   return { res };
 });
 
@@ -21,18 +23,24 @@ fastify.get("/contains", async (request, reply) => {
 });
 
 fastify.get("/ends", async (request, reply) => {
-  const { str } = request.query as { str: string };
-  const res = trie.endsWith(str);
+  const { str, l } = request.query as { str: string; l?: string };
+  const res = trie.endsWith(str, l ? parseInt(l) : undefined);
+  memoryUsage();
   return { res };
 });
 
+const populateTrie = async () => {
+  await Gaddag.readWords(trie);
+};
+
 const start = async () => {
   try {
-    readWords_Gaddag(trie);
-    await fastify.listen(3000);
+    await fastify.listen(5100);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);
   }
 };
+
+populateTrie();
 start();

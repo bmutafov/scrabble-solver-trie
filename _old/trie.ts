@@ -1,6 +1,3 @@
-import * as fs from "fs";
-
-type NullableTrieNode = TrieNode | null;
 type TrieSize = {
   validWords: number;
   nodes: number;
@@ -22,7 +19,7 @@ class TrieNode {
   }
 }
 
-export class Trie {
+class Trie {
   public readonly root: TrieNode = new TrieNode("");
   private readonly _size: TrieSize = { validWords: 0, nodes: 0 };
 

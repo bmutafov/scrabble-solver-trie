@@ -10,90 +10,24 @@ A Trie dictionary with the full list of Bulgarian words. It can search for speci
 const trie = new Trie();
 
 async function readWords() {
-  const allWordsTxt = await fs.promises.readFile("./parser/output.txt");
-  const _rawWords = allWordsTxt.toString().split("\r\n");
+  // Populate the words from the dictionary
+  // into the trie
+  await Gaddag.readWords(trie);
 
-  _rawWords.forEach((word) => {
-    if (word.length > 1) {
-      trie.addWord(word);
-    }
-  });
+  // use the trie functionalities after
+  trie.startsWith("опа");
+  //...other...
 }
 ```
 
-### Search for word
-
-```typescript
-trie.searchWord("мишка"); // -> true
-trie.searchWord("фалкандеш"); // -> false
-```
-
-### Starts with
+### Trie functions
 
 ```typescript
 // All
-trie.startsWith("миш"); // ->
-/**
-[
-  'миша',         'мишата',      'мишелов',     'мишелова',    'мишеловата',
-  'мишеловец',    'мишеловеца',  'мишеловецо',  'мишеловецът', 'мишелови',
-  'мишеловите',   'мишеловия',   'мишеловият',  'мишеловка',   'мишеловката',
-  'мишеловки',    'мишеловките', 'мишелово',    'мишеловото',  'мишеловци',
-  'мишеловците',  'мишеморка',   'мишеморката', 'мишеморки',   'мишеморките',
-  'мишена',       'мишената',    'мишени',      'мишените',    'миши',
-  'мишина',       'мишината',    'мишини',      'мишините',    'мишите',
-  'мишия',        'мишият',      'мишка',       'мишката',     'мишки',
-  'мишките',      'мишкува',     'мишкувай',    'мишкувайки',  'мишкувайте',
-  'мишкувал',     'мишкувала',   'мишкувалата', 'мишкували',   'мишкувалите',
-  'мишкувалия',   'мишкувалият', 'мишкувало',   'мишкувалото', 'мишкувам',
-  'мишкуваме',    'мишкуван',    'мишкувана',   'мишкуваната', 'мишкуване',
-  'мишкуването',  'мишкувани',   'мишкуваните', 'мишкувания',  'мишкуваният',
-  'мишкуванията', 'мишкувано',   'мишкуваното', 'мишкуват',    'мишкувате',
-  'мишкувах',     'мишкуваха',   'мишкувахме',  'мишкувахте',  'мишкуваш',
-  'мишкуваше',    'мишкуващ',    'мишкуваща',   'мишкуващата', 'мишкуващи',
-  'мишкуващите',  'мишкуващия',  'мишкуващият', 'мишкуващо',   'мишкуващото',
-  'мишле',        'мишлета',     'мишлетата',   'мишлето',     'мишница',
-  'мишницата',    'мишници',     'мишниците',   'мишо',        'мишок',
-  'мишока',       'мишокът',     'мишото',      'мишоци',      'мишоците',
-  ... 4 more items
-]
-*/
-
-// With search depth
-// Searches all words with length <5
-trie.startsWith("миш", 5); // ->
-/**
- * 
-[
-  'миша',  'миши', 
-  'мишия', 'мишка',
-  'мишки', 'мишле',
-  'мишо',  'мишок',
-  'мишца', 'мишци' 
-]
-*/
-
-// With specific letters on indexes
-// Searches for word starting with "миш" and having "е" on position 5 (i: 4)
-trie.startsWith("миш", null, [[], [], [], [], ["е"]]); // -> [ 'миша', 'миши', 'мишле', 'мишлета', 'мишлетата', 'мишлето', 'мишо' ]
-```
-
-### Pattern
-
-```typescript
-//search for a pattern
-//use * as a wildcard
-trie.pattern("**шка"); // ->
-/**
- * 
-[
-  'башка', 'вишка', 'въшка',
-  'гушка', 'душка', 'лашка',
-  'люшка', 'мишка', 'мушка',
-  'нишка', 'пешка', 'пишка',
-  'пушка', 'пъшка', 'чашка',
-  'чешка', 'чушка', 'шашка',
-  'шушка'
-]
-*/
+trie.startsWith("миш"); // All words starting with the provided string
+trie.startsWith("миш"); // All words starting with the provided string
+trie.endsWith("нис"); // All words ending with provided string
+trie.endsWith("миш", 5); // All words ending with the provided string with MAX LENGTH = 5
+trie.contains("нис"); // All word containing the string
+trie.searchWord("мишка"); // True or false, depending if word is found in the tree
 ```
