@@ -173,6 +173,36 @@ export class TrieV2 {
     });
   }
 
+  size() {
+    return this.sizeIterator(this._ROOT);
+  }
+
+  private sizeIterator(node: TrieNode): number {
+    if (node.edges.size === 0) return 1;
+    const values = [...node.edges.values()];
+
+    return 1 + values.reduce((sum, curr) => sum + this.sizeIterator(curr), 0);
+  }
+
+  dictionarySize() {
+    return this.dictionarySizeIterator(this._ROOT);
+  }
+
+  private dictionarySizeIterator(node: TrieNode) {
+    const values = [...node.edges.values()];
+    if (node.isTerminator) {
+      return (
+        1 +
+        values.reduce((sum, curr) => sum + this.dictionarySizeIterator(curr), 0)
+      );
+    }
+
+    return values.reduce(
+      (sum, curr) => sum + this.dictionarySizeIterator(curr),
+      0
+    );
+  }
+
   //#region private-helpers
   private getLetters(word: string): string[] {
     return word.split("");
