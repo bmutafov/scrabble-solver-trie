@@ -18,16 +18,28 @@ async function readWords() {
   trie.startsWith("опа");
   //...other...
 }
+
+function addSingleWord() {
+  Gaddag.generateFromWord("тетрис").forEach((word) => trie.addWord(word));
+}
 ```
 
 ### Trie functions
 
 ```typescript
 // All
+
+// startsWith
 trie.startsWith("миш"); // All words starting with the provided string
-trie.startsWith("миш"); // All words starting with the provided string
+trie.startsWith("миш", 5); // All words starting with the provided stringwith MAX LENGTH = 5
+
+// endsWith
 trie.endsWith("нис"); // All words ending with provided string
 trie.endsWith("миш", 5); // All words ending with the provided string with MAX LENGTH = 5
+
+// contains
 trie.contains("нис"); // All word containing the string
+
+// searchWord
 trie.searchWord("мишка"); // True or false, depending if word is found in the tree
 ```
