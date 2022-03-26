@@ -43,6 +43,13 @@ fastify.get("/cw", async (request, reply) => {
   return { res };
 });
 
+fastify.get("/between", async (request, reply) => {
+  const { p, s } = request.query as { p: string; s: string };
+  const res = trie.between(p, s);
+  memoryUsage();
+  return { res };
+});
+
 fastify.post("/pattern", async (request, reply) => {
   const { s, h, b, a } = request.body as {
     s: string;

@@ -26,6 +26,18 @@ async function finishWith(word: string, hand: string[]): Promise<string[]> {
   return data.res;
 }
 
+async function between(prefix: string, suffix: string): Promise<string[]> {
+  console.log(
+    "---------",
+    "http://localhost:5100/between?p=" + prefix + "&s=" + suffix
+  );
+  const response = await axios.get<{ res: string[] }>(
+    encodeURI("http://localhost:5100/between?p=" + prefix + "&s=" + suffix)
+  );
+  const { data } = response;
+  return data.res;
+}
+
 async function byPattern(
   word: string,
   b: string[],
@@ -61,4 +73,5 @@ export default {
   endsWith,
   finishWith,
   byPattern,
+  between,
 };

@@ -46,6 +46,7 @@
 
     .static {
       border-color: blue;
+      background-color: rgb(212, 212, 255);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -87,6 +88,11 @@
       justify-content: center;
       font-weight: bold;
     }
+
+    .impossible {
+      border-color: rgb(255, 7, 7);
+      background-color: rgb(255, 163, 163);
+    }
   </style>
   <body>
     <div id="board"></div>
@@ -119,6 +125,7 @@
                 let bonusClass = "";
                 if (cell.includes("$")) bonusClass += " suggested";
                 else if (cell.includes("@")) bonusClass += " final-move";
+                else if (cell === "!") bonusClass += " impossible";
                 else if (cell.length > 0 && cell !== "*")
                   bonusClass += " static";
 
@@ -132,7 +139,7 @@
                     .filter((l) => l !== "#")
                     .join("");
                 }
-                if (content === "*") content = "";
+                if (content === "*" || content === "!") content = "";
 
                 return `<div class="cell ${bonusClass}">${content.replace(
                   /\$|\?|\@/,

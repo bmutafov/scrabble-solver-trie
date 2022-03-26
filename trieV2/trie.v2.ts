@@ -289,15 +289,6 @@ export class TrieV2 {
       hand,
       wordsArray
     );
-    // this.suggestIterator(
-    //   "",
-    //   this._ROOT,
-    //   required.split("").reverse(),
-    //   ["+"],
-    //   pAfter,
-    //   hand,
-    //   wordsArray
-    // );
 
     return Array.from(wordsArray);
   }
@@ -386,6 +377,54 @@ export class TrieV2 {
           removeFirstMatch(hand, letter),
           wordsArray
         );
+      }
+    }
+  }
+
+  between(prefix: string, suffix: string): string[] {
+    const wordsArray: Set<string> = new Set();
+    this.betweenIterator(
+      "",
+      reverse(`${prefix}*${suffix}`),
+      this._ROOT,
+      wordsArray
+    );
+    return Array.from(wordsArray);
+  }
+
+  private betweenIterator(
+    path: string,
+    pattern: string,
+    node: TrieNode,
+    wordsArray: Set<string>
+  ) {
+    if (pattern === "") {
+      if (node.isTerminator) {
+        wordsArray.add(this.ungaddagWord(path + node.data));
+      }
+      return;
+    }
+
+    if (pattern.charAt(0) === "*") {
+      node.edges.forEach((childNode) => {
+        this.betweenIterator(
+          path + node.data,
+          pattern.substring(1),
+          childNode,
+          wordsArray
+        );
+      });
+    } else {
+      const nextNode = node.edges.get(pattern.charAt(0));
+      if (nextNode) {
+        this.betweenIterator(
+          path + node.data,
+          pattern.substring(1),
+          nextNode,
+          wordsArray
+        );
+      } else {
+        return;
       }
     }
   }
