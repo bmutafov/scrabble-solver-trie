@@ -27,10 +27,6 @@ async function finishWith(word: string, hand: string[]): Promise<string[]> {
 }
 
 async function between(prefix: string, suffix: string): Promise<string[]> {
-  console.log(
-    "---------",
-    "http://localhost:5100/between?p=" + prefix + "&s=" + suffix
-  );
   const response = await axios.get<{ res: string[] }>(
     encodeURI("http://localhost:5100/between?p=" + prefix + "&s=" + suffix)
   );
@@ -45,12 +41,6 @@ async function byPattern(
   h: string[]
 ): Promise<string[]> {
   try {
-    console.log("request", {
-      s: word,
-      b,
-      a,
-      h,
-    });
     const response = await axios.post<{ res: string[] }>(
       encodeURI("http://localhost:5100/pattern"),
       {

@@ -307,9 +307,11 @@ export class TrieV2 {
     }
 
     if (pAfter.length > 0) {
-      for (const letter of pAfter[0]
-        .split("")
-        .filter((l) => hand.includes(l) || l === "+")) {
+      const possibleAfter =
+        pAfter[0] === "*"
+          ? hand
+          : pAfter[0].split("").filter((l) => hand.includes(l) || l === "+");
+      for (const letter of possibleAfter) {
         const nextNode = node.edges.get(letter);
         if (!nextNode) continue;
 
@@ -344,9 +346,12 @@ export class TrieV2 {
     }
 
     if (pBefore.length > 0) {
-      for (const letter of pBefore[0]
-        .split("")
-        .filter((l) => hand.includes(l) || l === "+")) {
+      const possibleBefore =
+        pBefore[0] === "*"
+          ? hand
+          : pBefore[0].split("").filter((l) => hand.includes(l) || l === "+");
+
+      for (const letter of possibleBefore) {
         const nextNode = node.edges.get(letter);
         if (!nextNode) continue;
 

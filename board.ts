@@ -6,7 +6,7 @@ import { rotate90, rotate270 } from "2d-array-rotation";
 import { Direction, iterateBoard, PerRowCallback } from "./utils/iterate-board";
 import AxiosCalls from "./utils/axios-calls";
 
-const hand = ["б", "н", "я", "х", "о", "о"];
+const hand = ["б", "к", "х", "о", "о", "с", "ъ"];
 
 export type Board<T = string> = T[][];
 const BOARD: Board = [
@@ -149,7 +149,7 @@ async function findPossibleLettersOnAnchors(
   );
 }
 
-async function addPossibleLettersToBoard(
+async function addPossibleLettersForAnchors(
   board: Board,
   anchoredWords: AnchoredWord[]
 ) {
@@ -164,12 +164,130 @@ async function addPossibleLettersToBoard(
   }
 }
 
+//TODO: EXTRACT TO UTIL
+function getColumnAsString(board: Board, c: number) {
+  let result = "";
+  for (let i = 0; i < 14; i++) {
+    result += board[i][c].charAt(0) || ".";
+  }
+
+  return result;
+}
+
+type OptionWord = {
+  word: string;
+  anchorPos: [number, number];
+  startPos: [number, number];
+};
+async function findPossibleWordsForAnchors(
+  board: Board,
+  anchoredWords: AnchoredWord[]
+): Promise<OptionWord[]> {
+  const optionWords: OptionWord[] = [];
+
+  for (const anchor of anchoredWords) {
+    const [r, c] = anchor.position;
+    // Nothing can be placed on this anchor
+    if (board[r][c] === "!") continue;
+
+    const { root, options: wordsForAnchor } = await constructPatternQuery(
+      board,
+      r,
+      c
+    );
+
+    const columnAsString = getColumnAsString(board, c);
+    const indexOfRootOnColumn = columnAsString.indexOf(root);
+
+    wordsForAnchor.forEach((word) => {
+      const indexOfRootWord = word.indexOf(root);
+      optionWords.push({
+        word,
+        anchorPos: [r, c],
+        startPos: [indexOfRootOnColumn - indexOfRootWord, c],
+      });
+    });
+  }
+
+  return optionWords;
+}
+
+const isLetter = (stringOnBoard: string) =>
+  stringOnBoard !== "" &&
+  !stringOnBoard.startsWith("$") &&
+  stringOnBoard !== "!";
+const isAnchor = (stringOnBoard: string) => stringOnBoard.startsWith("$");
+
+async function constructPatternQuery(
+  board: Board,
+  r: number,
+  c: number
+): Promise<{ root: string; options: string[] }> {
+  let word: string = "";
+  let b: string[] = [];
+  let a: string[] = [];
+  let h: string[] = [];
+
+  const isTopAdjacent = isLetter(board[r - 1][c]);
+  const isBottomAdjacent = isLetter(board[r + 1][c]);
+
+  if (isTopAdjacent) {
+    for (let i = r - 1; i > 0; i--) {
+      if (isLetter(board[i][c])) {
+        word = board[i][c] + word;
+      } else if (isAnchor(board[i][c])) {
+        b.push(board[i][c].replace("$", ""));
+      } else break;
+    }
+    a = [board[r][c].replace("$", "")];
+    return {
+      root: word,
+      options: await AxiosCalls.byPattern(word, b, a, hand),
+    };
+  }
+  if (isBottomAdjacent) {
+    for (let i = r + 1; i < 14; i++) {
+      if (isLetter(board[i][c])) {
+        word += board[i][c];
+      } else if (isAnchor(board[i][c])) {
+        a.push(board[i][c].replace("$", ""));
+      } else break;
+    }
+    b = [board[r][c].replace("$", "")];
+    return {
+      root: word,
+      options: await AxiosCalls.byPattern(word, b, a, hand),
+    };
+  }
+
+  return { root: "", options: [] };
+}
+
+function playWord(board: Board, optionWord: OptionWord) {
+  const {
+    word,
+    startPos: [r, c],
+  } = optionWord;
+  console.log("🚩 ~ word", word);
+  for (let i = r; i - r < word.length; i++) {
+    if (!isLetter(board[i][c])) {
+      board[i][c] = "@" + word.charAt(i - r);
+    }
+  }
+}
+
 async function run() {
   const guessBoard = [...BOARD.map((r) => r.slice())];
 
   iterateBoard(BOARD, Direction.Rows, findAnchors);
   const anchoredWords = findAnchoredWords(guessBoard);
-  addPossibleLettersToBoard(guessBoard, anchoredWords);
+  await addPossibleLettersForAnchors(guessBoard, anchoredWords);
+  const possibleWords = await findPossibleWordsForAnchors(
+    guessBoard,
+    anchoredWords
+  );
+  const [longest] = possibleWords.sort((a, b) => b.word.length - a.word.length);
+  playWord(guessBoard, longest);
 
   end(guessBoard);
 }
