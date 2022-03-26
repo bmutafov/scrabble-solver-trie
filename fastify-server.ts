@@ -31,7 +31,26 @@ fastify.get("/ends", async (request, reply) => {
 
 fastify.get("/finish", async (request, reply) => {
   const { str, hand } = request.query as { str: string; hand: string };
-  const res = trie.finishWithHand(str, hand.split(","));
+  const res = trie.finishWithHand(str, hand.split(""));
+  memoryUsage();
+  return { res };
+});
+
+fastify.get("/cw", async (request, reply) => {
+  const { str, hand } = request.query as { str: string; hand: string };
+  const res = trie.containsWithHand(str, hand.split(""));
+  memoryUsage();
+  return { res };
+});
+
+fastify.post("/pattern", async (request, reply) => {
+  const { s, h, b, a } = request.body as {
+    s: string;
+    h: string[];
+    b: string[];
+    a: string[];
+  };
+  const res = trie.suggest(s, b, a, h);
   memoryUsage();
   return { res };
 });

@@ -1,3 +1,8 @@
+import { patternToArray } from "../utils/pattern-to-array";
+import {
+  removeFirstElement,
+  removeFirstMatch,
+} from "../utils/remove-first-occurance";
 import { reverse } from "../utils/reverse";
 
 class TrieNode {
@@ -219,6 +224,170 @@ export class TrieV2 {
         wordsArray
       );
     });
+  }
+
+  containsWithHand(word: string, hand: string[]): string[] {
+    const wordsArray: Set<string> = new Set();
+    const prefixLetters = this.getLetters(reverse(word));
+
+    let node = this._ROOT;
+    for (const letter of prefixLetters) {
+      if (node.edges.has(letter)) {
+        node = node.edges.get(letter)!;
+      } else {
+        return [];
+      }
+    }
+    this.containsWithHandIterator(
+      word.substring(1, word.length),
+      node,
+      hand,
+      wordsArray
+    );
+    return [...wordsArray];
+  }
+
+  private containsWithHandIterator(
+    path: string,
+    node: TrieNode,
+    hand: string[],
+    wordsArray: Set<string>
+  ): void {
+    if (node.isTerminator) {
+      wordsArray.add(node.data + path);
+
+      if (node.edges.size === 0) return;
+    }
+
+    hand.forEach((letter) => {
+      const childNode = node.edges.get(letter);
+      if (childNode) {
+        this.containsWithHandIterator(
+          node.data + path,
+          childNode,
+          removeFirstMatch(hand, letter),
+          wordsArray
+        );
+      }
+    });
+  }
+
+  suggest(
+    required: string,
+    pBefore: string[],
+    pAfter: string[],
+    hand: string[]
+  ): string[] {
+    const wordsArray: Set<string> = new Set();
+
+    this.suggestIterator(
+      "",
+      this._ROOT,
+      required.split("").reverse(),
+      pBefore.reverse(),
+      pAfter.reverse(),
+      hand,
+      wordsArray
+    );
+    // this.suggestIterator(
+    //   "",
+    //   this._ROOT,
+    //   required.split("").reverse(),
+    //   ["+"],
+    //   pAfter,
+    //   hand,
+    //   wordsArray
+    // );
+
+    return Array.from(wordsArray);
+  }
+
+  private suggestIterator(
+    path: string,
+    node: TrieNode,
+    required: string[],
+    pBefore: string[],
+    pAfter: string[],
+    hand: string[],
+    wordsArray: Set<string>
+  ): void {
+    if (node.isTerminator && required.length === 0) {
+      wordsArray.add(this.ungaddagWord(path + node.data));
+    }
+
+    if (pAfter.length > 0) {
+      for (const letter of pAfter[0]
+        .split("")
+        .filter((l) => hand.includes(l) || l === "+")) {
+        const nextNode = node.edges.get(letter);
+        if (!nextNode) continue;
+
+        this.suggestIterator(
+          path + node.data,
+          nextNode,
+          required,
+          pBefore,
+          removeFirstElement(pAfter),
+          removeFirstMatch(hand, letter),
+          wordsArray
+        );
+      }
+      return;
+    }
+
+    if (required.length > 0) {
+      const [requiredNow, ...requiredAfter] = required;
+      const nextNode = node.edges.get(requiredNow);
+      if (!nextNode) return;
+
+      this.suggestIterator(
+        path + node.data,
+        nextNode,
+        requiredAfter,
+        pBefore,
+        pAfter,
+        hand,
+        wordsArray
+      );
+      return;
+    }
+
+    if (pBefore.length > 0) {
+      for (const letter of pBefore[0]
+        .split("")
+        .filter((l) => hand.includes(l) || l === "+")) {
+        const nextNode = node.edges.get(letter);
+        if (!nextNode) continue;
+
+        this.suggestIterator(
+          path + node.data,
+          nextNode,
+          required,
+          removeFirstElement(pBefore),
+          pAfter,
+          removeFirstMatch(hand, letter),
+          wordsArray
+        );
+      }
+      return;
+    }
+
+    if (hand.length > 0) {
+      for (const letter of [...hand, "+"]) {
+        const nextNode = node.edges.get(letter);
+        if (!nextNode) continue;
+
+        this.suggestIterator(
+          path + node.data,
+          nextNode,
+          required,
+          pBefore,
+          pAfter,
+          removeFirstMatch(hand, letter),
+          wordsArray
+        );
+      }
+    }
   }
 
   size() {

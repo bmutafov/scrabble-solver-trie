@@ -1,224 +1,120 @@
+import { patternToArray } from "./utils/pattern-to-array";
 import axios from "axios";
 import ora from "ora";
 import { exportToVis } from "./utils/export-to-vis";
+import { rotate90, rotate270 } from "2d-array-rotation";
+import { Direction, iterateBoard, PerRowCallback } from "./utils/iterate-board";
 
-type Board<T = string> = T[][];
-const global_board: Board = [
+const hand = ["б", "н", "я", "х", "о", "о"];
+
+export type Board<T = string> = T[][];
+const BOARD: Board = [
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", "н", "", "", "", "", "", ""],
+  ["", "", "", "", "", "", "", "", "м", "", "", "", "", "", ""],
   ["", "", "", "", "", "б", "а", "н", "а", "н", "а", "", "", "", ""],
-  ["", "", "", "", "", "", "х", "а", "", "а", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
-  ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "я", "х", "а", "", "а", "", "", "", "", ""],
+  ["", "", "", "", "", "х", "", "", "", "", "", "", "", "", ""],
+  ["", "", "", "", "", "а", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
   ["", "", "", "", "", "", "", "", "", "", "", "", "", "", ""],
 ];
-const hand = ["с", "а", "т", "е", "я", "л", "о"];
 
-const guess_board: Board = [...global_board.map((w) => w.slice())];
-
-async function startsWith(word: string, depth?: number): Promise<string[]> {
-  const response = await axios.get<{ res: string[] }>(
-    encodeURI("http://localhost:5100/starts?str=" + word + "&l=" + depth)
-  );
-  const { data } = response;
-  return data.res;
+enum AnchorPosition {
+  LEFT = 1,
+  RIGHT = -1,
+  BOTH = 0,
 }
+const anchorPositions: [number, number, AnchorPosition][] = [];
+const ANCHOR_SIGN = "$";
 
-async function endsWith(word: string, depth?: number): Promise<string[]> {
-  const response = await axios.get<{ res: string[] }>(
-    encodeURI("http://localhost:5100/ends?str=" + word + "&l=" + depth)
-  );
-  const { data } = response;
-  return data.res;
-}
+/**
+ * Find all spaces on the boards, which are anchors
+ * @param r Row
+ * @param c Column
+ * @param value Value of the iterated cell
+ * @param board The board
+ */
+const findAnchors: PerRowCallback = (r, c, value, board) => {
+  // If we are iterating currently on a spot which has a set letter
+  if (value && value !== ANCHOR_SIGN) {
+    // if the previous is empty
+    if (board[r][c - 1] === "") {
+      // set it to the anchor sign and add it to the anchors array
+      board[r][c - 1] = ANCHOR_SIGN;
+      anchorPositions.push([r, c - 1, AnchorPosition.LEFT]);
+    }
+    // if the previous is NOT empty but has ANCHOR_SIGN
+    // it means we already tagged it for right anchor
+    // and now it is left as well, so we change it to BOTH
+    else if (board[r][c - 1] === ANCHOR_SIGN) {
+      const existingAnchorOnPosition = anchorPositions.find(
+        (a) => a[0] === r && a[1] === c - 1
+      );
+      existingAnchorOnPosition![2] = AnchorPosition.BOTH;
+    }
 
-async function finishWith(word: string, hand: string[]): Promise<string[]> {
-  const response = await axios.get<{ res: string[] }>(
-    encodeURI(
-      "http://localhost:5100/finish?str=" + word + "&hand=" + hand.join(",")
-    )
-  );
-  const { data } = response;
-  return data.res;
-}
+    // if the next is empty
+    if (board[r][c + 1] === "") {
+      // set it to the anchor sign and add it to the anchors array
+      board[r][c + 1] = ANCHOR_SIGN;
+      anchorPositions.push([r, c + 1, AnchorPosition.RIGHT]);
+    }
+  }
+};
 
-function unique<T>(arr: T[]): T[] {
-  return [...new Set(arr)];
-}
+/**
+ * For each anchor, find the words that are attached to it so we can search the dictionary
+ */
+function findAnchoredWords() {
+  for (const anchor of anchorPositions) {
+    const [row, col, anchorPosition] = anchor;
+    let word: string = ANCHOR_SIGN;
 
-const spinner = ora("Calculating move...");
-
-async function run() {
-  // Iterate board each row
-  const calculating = global_board
-    .map((row, i_r) => {
-      // For each row iterate columns
-      return row.map(async (col, i_c) => {
-        // If the space we are checking is not empty, disregard the check
-        if (col !== "") return;
-        // Initialize empty values for the strings before and after the space we are checking
-        let left: string = "";
-        let right: string = "";
-
-        // Iterate through the row forwards and backwards in the same array
-        for (
-          // b -> backwards, starting previous column
-          // f -> forwards, starting next column
-          let b = i_c - 1, f = i_c + 1;
-          // iterate while backwards is >= 1 (so we can do b - 1 and get index 0)
-          // and similarly with f < 14 so we can do f + 1 and get 14 (last board index)
-          b >= 1 || f < 14;
-          //change the values each iteration respectively
-          b--, f++
-        ) {
-          // if we have not yet terminated backwards search
-          // and the iterated column is not empty (has a letter)
-          if (b > 0 && row[b] !== "") {
-            // add it to the "left" string
-            left = row[b] + left;
-          } else {
-            // if we have terminated OR the column is empty, it means no more information
-            // can be extracted for this row, so terminate backwards search
-            b = -1;
-          }
-
-          // similarly, iterate forwards at the same time with the same conditions
-          if (f < 14 && row[f] !== "") {
-            right += row[f];
-          } else {
-            // here 21 is chosen randomly, as it can be any number bigger 14
-            // we just need to terminate the if and enter the else
-            f = 21;
-          }
-        }
-
-        // when iteration is finished check for
-        if (left && !right) {
-          // only left letters, it means 1 or more letters are to the left, none to the right
-          // so we got to come up with valid word that is one letter longer than the left word
-          const words = await startsWith(left, left.length + 1);
-          // when we have those words, get the character only at the position after the left word
-          // and add it to the guess_board. $ here is to know which spaces are suggestive spaces and which are already on the board
-          guess_board[i_r][i_c] =
-            "$" +
-            unique(words.map((word) => word.charAt(left.length))).join("");
-        }
-
-        if (!left && right) {
-          // similarly, if only right, it means we have to append 1 letter on the left
-          // so we search for words ending in "right" word
-          const words = await endsWith(right, right.length + 1);
-          // when we have those, get the character before the "right" word and add it to the guess_board
-          guess_board[i_r][i_c] =
-            "$" +
-            unique(
-              words.map((word) => word.charAt(word.length - right.length - 1))
-            ).join("");
-        }
-
-        if (left && right) {
-          // if we have left and right, it means we have to fit into a specific spot
-          // so we got to search by pattern
-          const words = await startsWith(left, left.length + 1);
-          // TODO: Search by pattern
-        }
-      });
-    })
-    .flat();
-
-  spinner.start();
-  await Promise.all(calculating);
-
-  // After we have gone and calculated all horizontal fillers
-  // we go second time column by column this time
-  for (let i_c = 0; i_c < 14; i_c++) {
-    for (let i_r = 0; i_r < 14; i_r++) {
-      // get the current cell
-      const cell = guess_board[i_r][i_c];
-      // if the cell starts with $ - it means this cell is an anchor
-      // and word can start from here
-      // a cell containing only "$" is an anchor, but nothing can be placed there to make a word
-      if (cell.startsWith("$") && cell.length > 1) {
-        let top: string = "";
-        let bottom: string = "";
-
-        // Iterate through the row forwards and backwards in the same array
-        for (
-          // b -> backwards, starting previous row
-          // f -> forwards, starting next row
-          let b = i_r - 1, f = i_r + 1;
-          // iterate while backwards is >= 1 (so we can do b - 1 and get index 0)
-          // and similarly with f < 14 so we can do f + 1 and get 14 (last board index)
-          b >= 1 || f < 14;
-          //change the values each iteration respectively
-          b--, f++
-        ) {
-          // if we have not yet terminated backwards search
-          // and the iterated column is not empty (has a letter)
-          if (b > 0 && guess_board[b][i_c] !== "") {
-            // add it to the "left" string
-            top = guess_board[b][i_c] + top;
-          } else {
-            // if we have terminated OR the column is empty, it means no more information
-            // can be extracted for this row, so terminate backwards search
-            b = -1;
-          }
-
-          // similarly, iterate forwards at the same time with the same conditions
-          if (f < 14 && guess_board[f][i_c] !== "") {
-            bottom += guess_board[f][i_c];
-          } else {
-            // here 21 is chosen randomly, as it can be any number bigger 14
-            // we just need to terminate the if and enter the else
-            f = 21;
-          }
-        }
-
-        // top and bottom are build and now we can find words
-        // if we have top we can find all words starting with the top word
-        // and finishing with letters from our hand
-        if (top && !bottom) {
-          const finish = await finishWith(top, hand);
-
-          const cellLetters = cell.replace("$", "").split("");
-
-          const valid = finish.filter((word) => {
-            return cellLetters.includes(word.charAt(top.length));
-          });
-          const longest = valid.sort((a, b) => b.length - a.length)[0];
-          for (
-            let f = i_r, i = top.length;
-            f < i_r + longest.length - 1;
-            f++, i++
-          ) {
-            guess_board[f][i_c] = "@" + longest.charAt(i);
-          }
-          end();
-          return;
-        }
-
-        // if we have only bottom we can find words
-        // starting with letters from our hand
-        // and finishing with the ones on the bottom
-        if (!top && bottom) {
-          // TODO: endsWith(bottom), hasLettersFromHand
-        }
+    if (
+      anchorPosition === AnchorPosition.LEFT ||
+      anchorPosition === AnchorPosition.BOTH
+    ) {
+      // iterate columns forwards until we reach another anchor or empty cell
+      for (let c = col + 1; c < 14; c++) {
+        if (BOARD[row][c] && !BOARD[row][c].startsWith(ANCHOR_SIGN)) {
+          word += BOARD[row][c];
+        } else break;
       }
+    }
+
+    // iterate columns backwards until we reach another anchor or empty cell
+    if (
+      anchorPosition === AnchorPosition.RIGHT ||
+      anchorPosition === AnchorPosition.BOTH
+    ) {
+      for (let c = col - 1; c >= 0; c--) {
+        if (BOARD[row][c] && !BOARD[row][c].startsWith(ANCHOR_SIGN)) {
+          word = BOARD[row][c] + word;
+        } else break;
+      }
+    }
+
+    if (word) {
+      console.log(word);
     }
   }
 }
 
-function end() {
-  exportToVis(guess_board);
-  spinner.succeed("Move calculated");
+function run() {
+  iterateBoard(BOARD, Direction.Rows, findAnchors);
+  findAnchoredWords();
+}
+
+function end(board: Board) {
+  exportToVis(board);
 }
 
 run();
+end(BOARD);
