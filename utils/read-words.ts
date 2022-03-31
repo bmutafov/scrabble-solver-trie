@@ -24,6 +24,22 @@ export const Gaddag = {
 
     loader.succeed("Tree generated");
   },
+  readWordsEnglish: async (trie: TrieV2) => {
+    const loader = ora("Reading file...").start();
+    const filePath = join(__dirname, "..", "parser", "english.txt");
+    const allWordsTxt = await fs.promises.readFile(filePath);
+    const _rawWords = allWordsTxt.toString().split("\r\n");
+
+    loader.text = "Importing into trie...";
+
+    _rawWords.forEach((word) => {
+      if (word.length > 1) {
+        Gaddag.generateFromWord(word).forEach((w) => trie.addWord(w));
+      }
+    });
+
+    loader.succeed("Tree generated");
+  },
   readWordsLineByLine: async (trie: TrieV2) => {
     const filePath = join(__dirname, "..", "parser", "output.txt");
     const rl = readline.createInterface({

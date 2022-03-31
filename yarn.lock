@@ -1884,6 +1884,11 @@
   dependencies:
     "isexe" "^2.0.0"
 
+"word-graphs@^0.2.1":
+  "integrity" "sha1-dIqJ2Yr6a4ASrFq38WAJ66FJRlY="
+  "resolved" "https://registry.npmjs.org/word-graphs/-/word-graphs-0.2.1.tgz"
+  "version" "0.2.1"
+
 "workerpool@6.2.0":
   "integrity" "sha512-Rsk5qQHJ9eowMH28Jwhe8HEbmdYDX4lwoMWshiCXugjtHqMD9ZbiqSDLxcsfdqsETPzVUtX5s1Z5kStiIM6l4A=="
   "resolved" "https://registry.npmjs.org/workerpool/-/workerpool-6.2.0.tgz"

@@ -51,8 +51,7 @@ export class SolverUtil {
         root: word,
         options: await AxiosCalls.byPattern(word, b, a, hand),
       };
-    }
-    if (isBottomAdjacent) {
+    } else if (isBottomAdjacent) {
       for (let i = r + 1; i < 14; i++) {
         if (SolverUtil.isLetter(board[i][c])) {
           word += board[i][c];
@@ -281,7 +280,9 @@ export class Solver {
       const { root, options: wordsForAnchor } =
         await SolverUtil.constructPatternQuery(board, r, c, this.hand);
 
+      console.log("🚩 ~ wordsForAnchor", wordsForAnchor);
       const columnAsString = SolverUtil.getColumnAsString(board, c);
+      console.log("🚩 ~ columnAsString", columnAsString);
       const indexOfRootOnColumn = columnAsString.indexOf(root);
 
       wordsForAnchor

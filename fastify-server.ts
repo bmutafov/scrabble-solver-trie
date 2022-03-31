@@ -50,6 +50,13 @@ fastify.get("/between", async (request, reply) => {
   return { res };
 });
 
+fastify.get("/p", async (request, reply) => {
+  const { p } = request.query as { p: string };
+  const res = trie.pattern(p);
+  memoryUsage();
+  return { res };
+});
+
 fastify.post("/pattern", async (request, reply) => {
   const { s, h, b, a } = request.body as {
     s: string;
@@ -63,7 +70,7 @@ fastify.post("/pattern", async (request, reply) => {
 });
 
 const populateTrie = async () => {
-  await Gaddag.readWords(trie);
+  await Gaddag.readWordsEnglish(trie);
 };
 
 const start = async () => {

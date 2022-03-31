@@ -386,6 +386,12 @@ export class TrieV2 {
     }
   }
 
+  pattern(pattern: string): string[] {
+    const wordsArray: Set<string> = new Set();
+    this.betweenIterator("", reverse(pattern), this._ROOT, wordsArray);
+    return Array.from(wordsArray);
+  }
+
   between(prefix: string, suffix: string): string[] {
     const wordsArray: Set<string> = new Set();
     this.betweenIterator(

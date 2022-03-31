@@ -17,7 +17,11 @@ async function parseFile() {
   );
 
   console.log("sorting...");
-  const sortedWords = uniqueWords.sort((a, b) => a.localeCompare(b));
+  console.log("🚩 ~ uniqueWords", uniqueWords);
+  const sortedWords = uniqueWords
+    .map((word) => word.replace(/'/g, ""))
+    .filter((word) => /^[а-я]+$/.test(word))
+    .sort((a, b) => a.localeCompare(b));
   console.log("writing...");
 
   const writeStream = fs.createWriteStream("./output.txt");
